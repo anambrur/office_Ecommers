@@ -1,0 +1,51 @@
+.container {
+    /*width: 1300px;*/
+}
+.header{
+    background: #fff;
+}
+.ads-style{
+    width: 100%;
+}
+.video-panel{
+    margin-top: 29px;
+}
+.image-style{
+    width: 100%;
+}
+.m-log{
+    margin-bottom: 15px;
+    border-radius: 50px;
+}
+.m-label{
+    font-style: italic;
+    margin-bottom: 5px;
+}
+.m-label span{
+    color: red;
+}
+.panel-style{
+    padding: 30px;
+}
+.close-style-ex {
+    background: black !important;
+    height: 25px;
+    width: 25px;
+    border-radius: 50%;
+    color: #fff;
+    font-size: 18px;
+    margin-top: 14px;
+}
+.close-style-ex:hover{
+    background:red !important;
+}
+.button-style{
+    border-radius: 50px;
+}
+.modal-content{
+    border-radius: 15px;
+}
+i.fa.fa-instagram {
+    color: #3f729b;
+    font-size: 36px;
+}

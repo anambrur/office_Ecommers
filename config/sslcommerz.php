@@ -1,0 +1,26 @@
+<?php
+
+// SSLCommerz configuration
+
+$apiDomain = env('SSLCZ_TESTMODE') ? "https://sandbox.sslcommerz.com" : "https://securepay.sslcommerz.com";
+$baseUrl = rtrim(env('APP_URL'));
+
+return [
+	'apiCredentials' => [
+		'store_id' => env("SSLCZ_STORE_ID"),
+		'store_password' => env("SSLCZ_STORE_PASSWORD"),
+	],
+	'apiUrl' => [
+		'make_payment' => "/gwprocess/v4/api.php",
+		'transaction_status' => "/validator/api/merchantTransIDvalidationAPI.php",
+		'order_validate' => "/validator/api/validationserverAPI.php",
+		'refund_payment' => "/validator/api/merchantTransIDvalidationAPI.php",
+		'refund_status' => "/validator/api/merchantTransIDvalidationAPI.php",
+	],
+	'apiDomain' => $apiDomain,
+	'connect_from_localhost' => rtrim(env('SSLCZ_TESTMODE')),
+	'success_url' => $baseUrl . '/success',
+	'failed_url' => $baseUrl . '/fail',
+	'cancel_url' => $baseUrl . '/cancel',
+	'ipn_url' => $baseUrl . '/ipn',
+];

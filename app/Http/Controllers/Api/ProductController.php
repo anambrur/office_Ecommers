@@ -20,10 +20,31 @@ class ProductController extends Controller
     public function getPopularProducts(Request $request)
     {
         try {
+            // Fetch popular products based on views
             $popularProducts = Product::where('status', 1)
                 ->orderBy('views', 'desc')
                 ->paginate(10);
 
+            // Get product IDs for reviews aggregation
+            $productIds = $popularProducts->pluck('id')->toArray();
+
+            // Fetch reviews data for these products in bulk
+            $reviewsData = Review::selectRaw('product_id, COUNT(*) as reviewsCount, SUM(rating) as totalRating')
+                ->whereIn('product_id', $productIds)
+                ->groupBy('product_id')
+                ->get()
+                ->keyBy('product_id');
+
+            // Append review data to each product
+            foreach ($popularProducts as $product) {
+                // Set review count and average rating
+                $product->reviewsCount = $reviewsData[$product->id]->reviewsCount ?? 0;
+                $product->reviewsRating = $product->reviewsCount > 0
+                    ? $reviewsData[$product->id]->totalRating / $product->reviewsCount
+                    : null;  // Avoid division by zero
+            }
+
+            // Return the popular products along with the reviews data
             return response()->json($popularProducts, 200);
         } catch (\Exception $e) {
             return response()->json([
@@ -33,15 +54,37 @@ class ProductController extends Controller
         }
     }
 
+
     #make a function for get latest products
 
     public function getLatestProducts(Request $request)
     {
         try {
+            // Fetch latest products with status = 1
             $latestProducts = Product::where('status', 1)
                 ->latest()
                 ->paginate(15);
 
+            // Get product IDs for reviews aggregation
+            $productIds = $latestProducts->pluck('id')->toArray();
+
+            // Fetch reviews data for these products in bulk
+            $reviewsData = Review::selectRaw('product_id, COUNT(*) as reviewsCount, SUM(rating) as totalRating')
+                ->whereIn('product_id', $productIds)
+                ->groupBy('product_id')
+                ->get()
+                ->keyBy('product_id');
+
+            // Append review data to each product
+            foreach ($latestProducts as $product) {
+                // Set review count and average rating
+                $product->reviewsCount = $reviewsData[$product->id]->reviewsCount ?? 0;
+                $product->reviewsRating = $product->reviewsCount > 0
+                    ? $reviewsData[$product->id]->totalRating / $product->reviewsCount
+                    : null;  // Avoid division by zero
+            }
+
+            // Return the latest products along with the reviews data
             return response()->json($latestProducts, 200);
         } catch (\Exception $e) {
             return response()->json([
@@ -53,15 +96,37 @@ class ProductController extends Controller
 
 
 
+
+
+
     public function getBestSellingProducts(Request $request)
     {
         try {
+            // Query for best-selling products
             $bestSellingProducts = DB::table('order_details')
                 ->selectRaw('products.*, SUM(order_details.product_qty) as total_sold')
                 ->join('products', 'products.id', '=', 'order_details.product_id')
                 ->groupBy('products.id')
                 ->orderBy('total_sold', 'desc')
                 ->paginate(15);
+
+            $productIds = $bestSellingProducts->pluck('id')->toArray();
+
+            // Fetch reviews data in bulk
+            $reviewsData = Review::selectRaw('product_id, COUNT(*) as reviewsCount, SUM(rating) as totalRating')
+                ->whereIn('product_id', $productIds)
+                ->groupBy('product_id')
+                ->get()
+                ->keyBy('product_id');
+
+            // Append reviewsCount and reviewsRating to each product
+            foreach ($bestSellingProducts as $product) {
+                $product->reviewsCount = $reviewsData[$product->id]->reviewsCount ?? 0;
+                $product->reviewsRating = $product->reviewsCount > 0
+                    ? $reviewsData[$product->id]->totalRating / $product->reviewsCount
+                    : null;  // Avoid division by zero
+            }
+
 
             return response()->json($bestSellingProducts, 200);
         } catch (\Exception $e) {
@@ -71,6 +136,7 @@ class ProductController extends Controller
             ], 500);
         }
     }
+
 
     #make a function for get slider products
 
@@ -106,46 +172,111 @@ class ProductController extends Controller
         }
     }
 
-    #make a function for product details
+
+
+    // public function productDetails(Request $request)
+    // {
+    //     try {
+    //         // Fetch the product with related categories, brand, and units
+    //         $product = Product::where('id', $request->product_id)->with('categories', 'brand', 'units')->first();
+
+    //         if ($product === null) {
+    //             return response()->json([
+    //                 'error' => 'Product not found.',
+    //             ], 404);
+    //         }
+
+    //         // Append the 'star_rating' attribute
+    //         $product->append('star_rating');
+
+    //         // Fetch reviews for the product
+    //         $reviewData = Review::selectRaw('COUNT(*) as reviewsCount, SUM(rating) as totalRating')
+    //             ->where('product_id', $product->id)
+    //             ->first();
+
+    //         // Calculate the review count and average rating
+    //         $reviewCount = $reviewData->reviewsCount ?? 0;
+    //         $reviewsRating = $reviewCount > 0 ? $reviewData->totalRating / $reviewCount : null;
+
+    //         // Update the product views
+    //         if ($product->views === null) {
+    //             $product->views = 0;
+    //         }
+    //         $product->views += 1;
+    //         $product->save();
+
+    //         // Fetch product attributes (colors, sizes)
+    //         $colors = SM::productAttributeColor($product->id);
+    //         $sizes = SM::productAttributeSize($product->id);
+
+    //         // Return product details along with review count and rating
+    //         return response()->json([
+    //             'product' => $product,
+    //             'reviewCount' => $reviewCount,
+    //             'reviewsRating' => $reviewsRating,
+    //             'colors' => $colors,
+    //             'sizes' => $sizes,
+    //         ], 200);
+    //     } catch (ModelNotFoundException $e) {
+    //         return response()->json([
+    //             'error' => 'Product not found.',
+    //         ], 404);
+    //     } catch (\Exception $e) {
+    //         return response()->json([
+    //             'error' => 'Something went wrong while fetching product details.',
+    //             'details' => $e->getMessage(),
+    //         ], 500);
+    //     }
+    // }
 
     public function productDetails(Request $request)
     {
         try {
-            $product = Product::where('id', $request->product_id)->with('categories', 'brand', 'units')->first();
-            $product->append('star_rating');
+            $product = Product::where('id', $request->product_id)
+                ->with('categories', 'brand', 'units')
+                ->first();
 
             if ($product === null) {
                 return response()->json([
                     'error' => 'Product not found.',
                 ], 404);
             }
-            // Check for null pointer references
+
+            // Append the dynamic attributes
+            $product->append('reviewCount', 'reviewsRating');
+
+            // Update views
             if ($product->views === null) {
                 $product->views = 0;
             }
-            $product->views = $product->views + 1;
+            $product->views += 1;
             $product->save();
 
+            // Fetch product attributes (colors, sizes)
             $colors = SM::productAttributeColor($product->id);
             $sizes = SM::productAttributeSize($product->id);
 
             return response()->json([
                 'product' => $product,
                 'colors' => $colors,
-                'sizes' => $sizes
+                'sizes' => $sizes,
             ], 200);
         } catch (ModelNotFoundException $e) {
-
             return response()->json([
                 'error' => 'Product not found.',
             ], 404);
         } catch (\Exception $e) {
             return response()->json([
                 'error' => 'Something went wrong while fetching product details.',
-                'details' => $e->getMessage()
+                'details' => $e->getMessage(),
             ], 500);
         }
     }
+
+
+
+
+
 
 
     public function productFilter(Request $request)
@@ -438,8 +569,8 @@ class ProductController extends Controller
         try {
             $product_id = $request->product_id;
             $reviews = Review::where('product_id', $product_id)->with('user')->get();
-            $reviewCount = $reviews->count(); 
-           
+            $reviewCount = $reviews->count();
+
             return response()->json([
                 'status' => 'success',
                 'message' => 'Reviews fetched successfully',

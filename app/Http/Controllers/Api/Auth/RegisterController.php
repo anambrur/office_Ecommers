@@ -36,6 +36,18 @@ class RegisterController extends Controller
                 'email' => $request->email,
                 'password' => bcrypt($request->password),
                 'status' => 2,
+
+                'address' => $request->address ?? null,
+                'country' => $request->country ?? null,
+                'city' => $request->city ?? null,
+                'zip' => $request->zip ?? null,
+
+                'billing_firstname' => $request->billing_firstname ?? null,
+                'billing_lastname' => $request->billing_lastname ?? null,
+                'billing_mobile' => $request->billing_mobile ?? null,
+                'billing_address' => $request->billing_address ?? null,
+                'billing_city' => $request->billing_city ?? null,
+                'billing_zip' => $request->billing_zip ?? null,
             ]);
 
             $otp = rand(1111, 9999);

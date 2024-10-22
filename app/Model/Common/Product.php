@@ -6,31 +6,6 @@ use Illuminate\Database\Eloquent\Model;
 
 class Product extends Model
 {
-    //    protected $fillable = [
-    //        "id",
-    //        "title",
-    //        "short_description",
-    //        "long_description",
-    //        "image",
-    //        "slug",
-    //        "sku",
-    //        "stock_status",
-    //        "is_special",
-    //        "tax_class",
-    //        "regular_price",
-    //        "sale_price",
-    //        "brand_id",
-    //        "is_sticky",
-    //        "comment_enable",
-    //        "comments",
-    //        "views",
-    //        "seo_title",
-    //        "meta_key",
-    //        "meta_description",
-    //        "created_by",
-    //        "modified_by",
-    //        "status"
-    //    ];
     protected $table = "products";
 
     public function scopePublished($query)
@@ -47,10 +22,6 @@ class Product extends Model
     {
         return $this->morphToMany("App\Model\Common\Tag", "taggable");
     }
-    // public function attributes()
-    // {
-    //     return $this->morphToMany("App\Model\Common\Attribute", "attributables");
-    // }
 
     public function attributes()
     {
@@ -66,12 +37,11 @@ class Product extends Model
     {
         return $this->belongsTo(Brand::class);
     }
+
     public function units()
     {
         return $this->belongsTo(Unit::class, 'unit_id');
     }
-
-
 
     public function user()
     {
@@ -91,11 +61,27 @@ class Product extends Model
     public function getStarRatingAttribute()
     {
         $count = $this->reviews()->count();
-        if (empty($count)) {
+        if ($count === 0) {
             return 0;
         }
         $starCountSum = $this->reviews()->sum('rating');
-        $average = $starCountSum / $count;
-        return $average;
+        return $starCountSum / $count;
+    }
+
+    // Accessor for reviewCount
+    public function getReviewCountAttribute()
+    {
+        return $this->reviews()->count();
+    }
+
+    // Accessor for reviewsRating
+    public function getReviewsRatingAttribute()
+    {
+        $reviewData = $this->reviews()->selectRaw('SUM(rating) as totalRating, COUNT(rating) as reviewsCount')->first();
+
+        if ($reviewData && $reviewData->reviewsCount > 0) {
+            return $reviewData->totalRating / $reviewData->reviewsCount;
+        }
+        return null; // Return null if there are no reviews
     }
 }

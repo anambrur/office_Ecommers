@@ -17,7 +17,7 @@ class CheckOutController extends Controller
 {
     public function checkOutApi(Request $request)
     {
-        
+
         try {
             // Validate the request input
             $request->validate([
@@ -220,6 +220,14 @@ class CheckOutController extends Controller
                 ->with('detail')
                 ->paginate(10);
 
+
+            foreach ($runningOrders as $order) {
+                foreach ($order->detail as $detail) {
+                    $product = Product::find($detail->product_id);
+                    $detail->product_title = $product ? $product->title : null;
+                }
+            }
+
             if ($runningOrders->isEmpty()) {
                 return response()->json(['error' => 'Order list is empty.'], 404);
             }
@@ -243,12 +251,20 @@ class CheckOutController extends Controller
             }
             $orderHistory = Order::where('user_id', $user_id)
                 ->where('order_status', 1)
+                ->with('user')
                 ->with('detail')
                 ->paginate(10);
 
             if ($orderHistory->isEmpty()) {
                 return response()->json(['error' => 'Order history is empty.'], 404);
             };
+
+            foreach ($orderHistory as $order) {
+                foreach ($order->detail as $detail) {
+                    $product = Product::find($detail->product_id);
+                    $detail->product_title = $product ? $product->title : null;
+                }
+            }
 
             return response()->json($orderHistory, 200);
         } catch (\Exception $e) {
@@ -262,47 +278,47 @@ class CheckOutController extends Controller
 
 
     // #make a function for order details
-    // public function orderDetails(Request $request)
-    // {
-    //     try {
-    //         $orderId = $request->input('order_id');
+    public function orderDetails(Request $request)
+    {
+        try {
+            $orderId = $request->input('order_id');
 
-    //         if (empty($orderId)) {
-    //             return response()->json(['error' => 'Order ID is required.'], 400);
-    //         }
+            if (empty($orderId)) {
+                return response()->json(['error' => 'Order ID is required.'], 400);
+            }
 
-    //         $order = Order::find($orderId);
+            $order = Order::find($orderId);
 
-    //         if (!$order instanceof Order) {
-    //             return response()->json(['error' => 'Order not found.'], 404);
-    //         }
+            if (!$order instanceof Order) {
+                return response()->json(['error' => 'Order not found.'], 404);
+            }
 
-    //         $order->load('detail');
+            $order->load('detail');
 
-    //         if ($order->detail === null) {
-    //             return response()->json(['error' => 'Order detail not found.'], 404);
-    //         }
+            if ($order->detail === null) {
+                return response()->json(['error' => 'Order detail not found.'], 404);
+            }
 
-    //         $products = $order->detail;
+            $products = $order->detail;
 
-    //         foreach ($products as $product) {
-    //             if ($product->product === null) {
-    //                 return response()->json(['error' => 'Product not found for order detail.'], 404);
-    //             }
+            foreach ($products as $product) {
+                if ($product->product === null) {
+                    return response()->json(['error' => 'Product not found for order detail.'], 404);
+                }
 
-    //             $productModel = Product::find($product->product_id);
-    //             if (!$productModel instanceof Product) {
-    //                 return response()->json(['error' => 'Product not found in database.'], 404);
-    //             }
-    //         }
+                $productModel = Product::find($product->product_id);
+                if (!$productModel instanceof Product) {
+                    return response()->json(['error' => 'Product not found in database.'], 404);
+                }
+            }
 
-    //         return response()->json(['order' => $order, 'products' => $productModel->title], 200);
-    //     } catch (ModelNotFoundException $e) {
-    //         return response()->json(['error' => 'Model not found.'], 404);
-    //     } catch (\Exception $e) {
-    //         return response()->json(['error' => 'An error occurred while retrieving order details.', 'message' => $e->getMessage()], 500);
-    //     }
-    // }
+            return response()->json(['order' => $order, 'products' => $productModel->title], 200);
+        } catch (ModelNotFoundException $e) {
+            return response()->json(['error' => 'Model not found.'], 404);
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'An error occurred while retrieving order details.', 'message' => $e->getMessage()], 500);
+        }
+    }
 
 
     public function orderCancel(Request $request)
